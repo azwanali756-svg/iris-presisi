@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IrisPresisi - Precision Irrigation Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Inter Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#080c15',
+              card: '#111827',
+              cardBorder: '#1f2937',
+              violet: '#7c3aed',
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080c15;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glow-purple {
+      box-shadow: 0 0 20px -3px rgba(124, 58, 237, 0.35);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex antialiased selection:bg-purple-600 selection:text-white">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="w-64 bg-slate-950/80 border-r border-slate-800/80 flex flex-col justify-between shrink-0 fixed inset-y-0 left-0 z-30 md:static">
+    <div>
+      <div class="h-20 flex items-center px-6 border-b border-slate-800/80 gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/25">
+          <i class="fa-solid fa-droplet text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-white tracking-wide flex items-center gap-1.5">
+            Iris<span class="text-violet-400">Presisi</span>
+          </h1>
+          <p class="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Edge Fuzzy Mamdani</p>
+        </div>
+      </div>
+
+      <div class="px-5 py-4">
+        <div class="p-3 bg-slate-900/90 border border-slate-800 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div>
+              <p class="text-xs font-semibold text-slate-200">ESP32 Client</p>
+              <p class="text-[10px] text-slate-400 font-mono">192.168.1.45</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Online</span>
+        </div>
+      </div>
+
+      <nav class="px-3 space-y-1">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/20">
+          <i class="fa-solid fa-gauge-high w-5 text-center"></i>
+          <span>Dashboard / Monitor</span>
+        </button>
+        <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+          <i class="fa-solid fa-chart-line w-5 text-center"></i>
+          <span>Analisis & Grafik</span>
+        </button>
+        <button onclick="switchTab('logs')" id="nav-logs" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+          <i class="fa-solid fa-database w-5 text-center"></i>
+          <span>Log Telemetri</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+          <i class="fa-solid fa-sliders w-5 text-center"></i>
+          <span>Konfigurasi Node</span>
+        </button>
+      </nav>
+
+      <div class="px-4 mt-6">
+        <div class="p-3.5 bg-violet-950/30 border border-violet-800/40 rounded-xl space-y-2.5">
+          <p class="text-xs font-semibold text-violet-300 flex items-center gap-2">
+            <i class="fa-solid fa-microchip"></i> Simulasi Siklus Edge
+          </p>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Kirim data telemetri baru ke backend Node.js dan simpan langsung ke database MySQL.
+          </p>
+          <button onclick="simulateFuzzyIrrigationCycle()" class="w-full bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition duration-200 shadow-lg shadow-violet-600/30">
+            <i class="fa-solid fa-bolt"></i> Simulasikan Siram
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 border-t border-slate-800/80 bg-slate-950/60">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 border border-slate-700">
+          <i class="fa-solid fa-user-graduate text-sm"></i>
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-xs font-semibold text-white truncate">Azwan Ali</p>
+          <p class="text-[10px] text-slate-400 truncate">Teknik Informatika (S1)</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT AREA ================= -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+    <header class="h-20 bg-slate-950/50 backdrop-blur-md border-b border-slate-800 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+      <div>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          Real-Time Precision Irrigation Dashboard
+        </h2>
+        <p class="text-xs text-slate-400 flex items-center gap-2">
+          <span>Metode: Fuzzy Mamdani</span>
+          <span class="text-slate-600">•</span>
+          <span>Protokol: RESTful API (JSON)</span>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex flex-col items-end px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg">
+          <span id="live-time" class="text-xs font-mono font-semibold text-slate-200">12:00:00 WIB</span>
+          <span id="live-date" class="text-[10px] text-slate-400">Jumat, 2026</span>
+        </div>
+        <button onclick="triggerManualPump()" class="bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-faucet-drip"></i>
+          <span>Uji Pompa</span>
+        </button>
+        <button onclick="exportTableToCSV()" class="bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-download"></i>
+          <span class="hidden md:inline">Export CSV</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="p-6 sm:p-8 space-y-6">
+
+      <!-- ================= TAB: DASHBOARD ================= -->
+      <div id="tab-dashboard" class="tab-pane space-y-6">
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-card rounded-2xl p-5 relative overflow-hidden group hover:border-violet-500/40 transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Kelembapan Tanah</span>
+              <span id="kpi-badge-moisture" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Optimal</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-moisture" class="text-3xl font-bold text-white tracking-tight">--</span>
+              <span class="text-sm font-semibold text-slate-400">%</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-seedling text-violet-400"></i> Sensor Kapasitif v1.2
+            </p>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-violet-600/10 rounded-full blur-xl group-hover:bg-violet-600/20 transition"></div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 relative overflow-hidden group hover:border-violet-500/40 transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Suhu Lingkungan</span>
+              <span id="kpi-badge-temp" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">Normal</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-temp" class="text-3xl font-bold text-white tracking-tight">--</span>
+              <span class="text-sm font-semibold text-slate-400">°C</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-temperature-half text-rose-400"></i> Sensor Digital DHT22
+            </p>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-rose-600/10 rounded-full blur-xl group-hover:bg-rose-600/20 transition"></div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 relative overflow-hidden group hover:border-violet-500/40 transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Fuzzy (mL)</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">Centroid</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-fuzzy-volume" class="text-3xl font-bold text-violet-300 tracking-tight">--</span>
+              <span class="text-sm font-semibold text-slate-400">mL</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-calculator text-violet-400"></i> 9 Aturan Min-Max Inferensi
+            </p>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-violet-600/20 rounded-full blur-xl group-hover:bg-violet-600/30 transition"></div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 relative overflow-hidden group hover:border-violet-500/40 transition">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Akumulasi Air</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">MySQL Log</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-total-water" class="text-3xl font-bold text-cyan-300 tracking-tight">--</span>
+              <span class="text-sm font-semibold text-slate-400">Liter</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-pie text-cyan-400"></i> Akumulasi Flow Meter
+            </p>
+            <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-cyan-600/10 rounded-full blur-xl group-hover:bg-cyan-600/20 transition"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-white">Tren Kelembapan Tanah vs Suhu</h3>
+                <p class="text-xs text-slate-400">Korelasi pembacaan parameter fisik terhadap waktu</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5 text-violet-400"><i class="fa-solid fa-circle text-[8px]"></i> Kelembapan (%)</span>
+                <span class="flex items-center gap-1.5 text-rose-400"><i class="fa-solid fa-circle text-[8px]"></i> Suhu (°C)</span>
+              </div>
+            </div>
+            <div class="h-64 w-full">
+              <canvas id="lineTrendsChart"></canvas>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-white">Target Fuzzy vs Debit Riil</h3>
+                <p class="text-xs text-slate-400">Validasi akurasi aktuator flow meter (mL)</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5 text-violet-400"><i class="fa-solid fa-square text-[8px]"></i> Fuzzy Target</span>
+                <span class="flex items-center gap-1.5 text-cyan-400"><i class="fa-solid fa-square text-[8px]"></i> Debit Riil</span>
+              </div>
+            </div>
+            <div class="h-64 w-full">
+              <canvas id="barVolumeChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-sm font-semibold text-white">Log Telemetri Transaksional</h3>
+              <p class="text-xs text-slate-400">Sinkronisasi data tabel <code class="text-violet-400 font-mono text-[11px]">telemetry_logs</code> dari MySQL</p>
+            </div>
+            <div class="relative w-full sm:w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+              <input type="text" id="log-search-input" onkeyup="filterLogsTable()" placeholder="Cari jam / status..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+            <table class="w-full text-left text-xs border-collapse" id="logs-table">
+              <thead class="bg-slate-900/90 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4"># ID</th>
+                  <th class="py-3 px-4">Timestamp</th>
+                  <th class="py-3 px-4">Kelembapan (%)</th>
+                  <th class="py-3 px-4">Suhu (°C)</th>
+                  <th class="py-3 px-4">Target Fuzzy</th>
+                  <th class="py-3 px-4">Debit Aktual</th>
+                  <th class="py-3 px-4">Deviasi (mL)</th>
+                  <th class="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body" class="divide-y divide-slate-800/60 font-mono">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= TAB: ANALYTICS ================= -->
+      <div id="tab-analytics" class="tab-pane hidden space-y-6">
+        <div class="glass-card rounded-2xl p-6">
+          <h3 class="text-base font-bold text-white mb-2">Evaluasi Pengujian & Efisiensi Konsumsi Air</h3>
+          <p class="text-xs text-slate-400 leading-relaxed max-w-3xl mb-6">
+            Komparasi akumulatif konsumsi air antara pot kontrol dengan pot uji sistem adaptif Fuzzy Mamdani.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl">
+              <p class="text-xs text-slate-400">Total Air Metode Konvensional</p>
+              <p class="text-2xl font-bold text-slate-200 mt-1">20.50 <span class="text-xs text-slate-500 font-normal">Liter</span></p>
+            </div>
+            <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl">
+              <p class="text-xs text-slate-400">Total Air Metode Fuzzy Mamdani</p>
+              <p class="text-2xl font-bold text-violet-400 mt-1" id="analytics-fuzzy-total">0.00 <span class="text-xs text-slate-500 font-normal">Liter</span></p>
+            </div>
+            <div class="p-4 bg-emerald-950/20 border border-emerald-800/40 rounded-xl">
+              <p class="text-xs text-emerald-300">Efisiensi Penghematan Air</p>
+              <p class="text-2xl font-bold text-emerald-400 mt-1" id="analytics-efficiency">0.00 %</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB: LOGS ================= -->
+      <div id="tab-logs" class="tab-pane hidden space-y-6">
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Semua Data Riwayat Transaksi</h3>
+              <p class="text-xs text-slate-400">Menampilkan seluruh data log telemetri yang telah dipersistensikan</p>
+            </div>
+            <button onclick="exportTableToCSV()" class="bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-file-csv"></i> Unduh File CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB: SETTINGS ================= -->
+      <div id="tab-settings" class="tab-pane hidden space-y-6">
+        <div class="glass-card rounded-2xl p-6 max-w-2xl">
+          <h3 class="text-base font-bold text-white mb-1">Konfigurasi Parameter Sistem</h3>
+          <p class="text-xs text-slate-400 mb-6">Pengaturan jadwal penimbangan fuzzy dan kalibrasi sensor mikrokontroler</p>
+          <div class="space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Jadwal Siklus Siram (Jadwal 1)</label>
+              <input type="time" value="07:00" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 w-full sm:w-60">
+            </div>
+            <div class="pt-2">
+              <button onclick="showToast('Konfigurasi berhasil disimpan!', 'success')" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-lg transition">
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl glass-card text-xs font-medium">
+    <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+    <span id="toast-message" class="text-slate-200">Notifikasi</span>
+  </div>
+
+  <!-- ================= JAVASCRIPT INTEGRATION ================= -->
+  <script>
+    // Menggunakan path relatif agar fleksibel di localhost dan setelah deploy
+    const API_BASE_URL = '/api/telemetry';
+    let telemetryData = [];
+    let lineChart, barChart;
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+      const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      document.getElementById('live-time').innerText = timeStr;
+      document.getElementById('live-date').innerText = dateStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function initCharts() {
+      const ctxLine = document.getElementById('lineTrendsChart').getContext('2d');
+      lineChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Kelembapan (%)',
+              data: [],
+              borderColor: '#a855f7',
+              backgroundColor: 'rgba(168, 85, 247, 0.12)',
+              fill: true,
+              tension: 0.38,
+              borderWidth: 2.2,
+              pointRadius: 4,
+              pointBackgroundColor: '#a855f7'
+            },
+            {
+              label: 'Suhu (°C)',
+              data: [],
+              borderColor: '#f43f5e',
+              backgroundColor: 'transparent',
+              borderDash: [4, 4],
+              tension: 0.38,
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#f43f5e'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+          }
+        }
+      });
+
+      const ctxBar = document.getElementById('barVolumeChart').getContext('2d');
+      barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Target Fuzzy (mL)',
+              data: [],
+              backgroundColor: 'rgba(139, 92, 246, 0.85)',
+              borderRadius: 6
+            },
+            {
+              label: 'Debit Riil (mL)',
+              data: [],
+              backgroundColor: 'rgba(6, 182, 212, 0.75)',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    async function loadDataFromBackend() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/history`);
+        if (!response.ok) return;
+        const data = await response.json();
+        telemetryData = data;
+
+        renderTable(telemetryData);
+
+        if (data.length > 0) {
+          const latest = data[0];
+          document.getElementById('kpi-moisture').innerText = latest.soil_moisture;
+          document.getElementById('kpi-temp').innerText = latest.temperature;
+          document.getElementById('kpi-fuzzy-volume').innerText = latest.fuzzy_volume_target;
+
+          const badgeM = document.getElementById('kpi-badge-moisture');
+          if (latest.soil_moisture < 30) {
+            badgeM.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20';
+            badgeM.innerText = 'Kering';
+          } else if (latest.soil_moisture <= 60) {
+            badgeM.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            badgeM.innerText = 'Lembap';
+          } else {
+            badgeM.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+            badgeM.innerText = 'Basah';
+          }
+
+          const totalWaterMl = data.reduce((sum, item) => sum + Number(item.actual_volume_dispensed || 0), 0);
+          const totalLiters = (totalWaterMl / 1000).toFixed(2);
+          document.getElementById('kpi-total-water').innerText = totalLiters;
+          
+          const analyticsElem = document.getElementById('analytics-fuzzy-total');
+          if (analyticsElem) analyticsElem.innerHTML = `${totalLiters} <span class="text-xs text-slate-500 font-normal">Liter</span>`;
+
+          const convWater = 20.50;
+          const savedPerc = Math.max(0, (((convWater - totalLiters) / convWater) * 100)).toFixed(2);
+          const effElem = document.getElementById('analytics-efficiency');
+          if (effElem) effElem.innerText = `${savedPerc} %`;
+        }
+
+        const chartData = [...data].reverse().slice(-7);
+        const labels = chartData.map(item => {
+          const d = new Date(item.timestamp);
+          return isNaN(d) ? item.timestamp : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        });
+
+        lineChart.data.labels = labels;
+        lineChart.data.datasets[0].data = chartData.map(i => i.soil_moisture);
+        lineChart.data.datasets[1].data = chartData.map(i => i.temperature);
+        lineChart.update();
+
+        barChart.data.labels = chartData.map(i => `#${i.id}`);
+        barChart.data.datasets[0].data = chartData.map(i => i.fuzzy_volume_target);
+        barChart.data.datasets[1].data = chartData.map(i => i.actual_volume_dispensed);
+        barChart.update();
+
+      } catch (err) {
+        console.warn('Gagal memuat telemetri:', err);
+      }
+    }
+
+    function renderTable(data = telemetryData) {
+      const tbody = document.getElementById('logs-table-body');
+      tbody.innerHTML = '';
+
+      data.forEach(item => {
+        const actual = Number(item.actual_volume_dispensed || 0);
+        const target = Number(item.fuzzy_volume_target || 0);
+        const deviation = actual > 0 ? (actual - target) : 0;
+        const devSign = deviation > 0 ? `+${deviation}` : `${deviation}`;
+        
+        let statusBadge = (item.status === 'Success' || item.status === 'SUCCESS')
+          ? `<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-sans font-semibold">Success</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 text-[10px] font-sans font-semibold">${item.status}</span>`;
+
+        const formattedDate = new Date(item.timestamp).toLocaleString('id-ID');
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/50 transition";
+        tr.innerHTML = `
+          <td class="py-2.5 px-4 text-slate-400">#${item.id}</td>
+          <td class="py-2.5 px-4 text-slate-300 font-sans text-[11px]">${formattedDate}</td>
+          <td class="py-2.5 px-4 text-violet-300 font-semibold">${item.soil_moisture}%</td>
+          <td class="py-2.5 px-4 text-rose-300 font-semibold">${item.temperature} °C</td>
+          <td class="py-2.5 px-4 text-violet-400 font-semibold">${item.fuzzy_volume_target} mL</td>
+          <td class="py-2.5 px-4 text-cyan-400 font-semibold">${item.actual_volume_dispensed} mL</td>
+          <td class="py-2.5 px-4 ${deviation === 0 ? 'text-slate-500' : (Math.abs(deviation) <= 5 ? 'text-emerald-400' : 'text-amber-400')}">${devSign} mL</td>
+          <td class="py-2.5 px-4">${statusBadge}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function simulateFuzzyIrrigationCycle() {
+      const randomMoisture = Number((18 + Math.random() * 32).toFixed(1));
+      const randomTemp = Number((26 + Math.random() * 8).toFixed(1));
+
+      let targetFuzzy = 150;
+      if (randomMoisture < 25) targetFuzzy = 380;
+      else if (randomMoisture < 35) targetFuzzy = 260;
+      else if (randomMoisture > 50) targetFuzzy = 0;
+
+      const actualDispensed = targetFuzzy === 0 ? 0 : Math.round(targetFuzzy + (Math.random() * 6 - 3));
+      const status = targetFuzzy === 0 ? 'SKIPPED_WET' : 'Success';
+
+      const payload = {
+        soil_moisture: randomMoisture,
+        temperature: randomTemp,
+        fuzzy_volume_target: targetFuzzy,
+        actual_volume_dispensed: actualDispensed,
+        status: status
+      };
+
+      try {
+        const res = await fetch(API_BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          showToast(`Payload #${resData.insertedId} tersimpan ke database MySQL! (Target: ${targetFuzzy} mL)`, 'success');
+          await loadDataFromBackend();
+        } else {
+          showToast('Server gagal memproses data simulasi.', 'info');
+        }
+      } catch (err) {
+        showToast('Koneksi ke backend gagal. Pastikan node server.js aktif.', 'info');
+      }
+    }
+
+    function filterLogsTable() {
+      const query = document.getElementById('log-search-input').value.toLowerCase();
+      const filtered = telemetryData.filter(item => 
+        String(item.timestamp).toLowerCase().includes(query) || 
+        String(item.status).toLowerCase().includes(query) ||
+        String(item.id).includes(query)
+      );
+      renderTable(filtered);
+    }
+
+    function exportTableToCSV() {
+      if (telemetryData.length === 0) {
+        showToast('Tidak ada data untuk diekspor.', 'info');
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "ID,Timestamp,SoilMoisture_Percent,Temperature_C,FuzzyVolumeTarget_mL,ActualVolumeDispensed_mL,Status\n";
+
+      telemetryData.forEach(r => {
+        csvContent += `${r.id},"${r.timestamp}",${r.soil_moisture},${r.temperature},${r.fuzzy_volume_target},${r.actual_volume_dispensed},${r.status}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `IrisPresisi_TelemetryLogs_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('File log telemetri CSV berhasil diunduh!', 'success');
+    }
+
+    function triggerManualPump() {
+      showToast('Perintah manual override pompa terkirim ke ESP32...', 'info');
+      setTimeout(() => {
+        showToast('Pompa mini DC aktif mengalirkan air.', 'success');
+      }, 2000);
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+
+      msg.innerText = message;
+      if (type === 'success') {
+        icon.className = 'fa-solid fa-circle-check text-emerald-400 text-sm';
+      } else {
+        icon.className = 'fa-solid fa-circle-info text-cyan-400 text-sm';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.className = "nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-900";
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.className = "nav-item w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/20";
+      }
+    }
+
+    window.onload = async function () {
+      initCharts();
+      await loadDataFromBackend();
+      setInterval(loadDataFromBackend, 5000);
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - IrisPresisi Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #080c15;
+      font-family: 'Inter', sans-serif;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- ================= FORM LOGIN UTAMA ================= -->
+  <div class="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-40 h-40 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-violet-500/30 mb-3">
+        <i class="fa-solid fa-droplet text-2xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-wide">
+        Iris<span class="text-violet-400">Presisi</span>
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">Sistem Kontrol & Telemetri Irigasi Presisi</p>
+    </div>
+
+    <div id="loginAlert" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold flex items-center gap-2"></div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-xs">
+      <div>
+        <label class="block font-semibold text-slate-300 mb-1.5">Username Petugas</label>
+        <div class="relative">
+          <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-500"></i>
+          <input type="text" id="username" required placeholder="Masukkan username" 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="block font-semibold text-slate-300">Kata Sandi</label>
+          <button type="button" onclick="openForgotModal()" class="text-violet-400 hover:text-violet-300 transition text-[11px]">
+            Lupa Kata Sandi?
+          </button>
+        </div>
+        <div class="relative">
+          <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-500"></i>
+          <input type="password" id="password" required placeholder="••••••••" 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+        </div>
+      </div>
+
+      <button type="submit" id="btnSubmit" 
+        class="w-full mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white font-semibold py-2.5 rounded-xl transition shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Masuk ke Dasbor</span>
+      </button>
+    </form>
+
+    <div class="mt-6 pt-4 border-t border-slate-800/80 text-center text-[11px] text-slate-500">
+      Autentikasi Terintegrasi Database MySQL
+    </div>
+  </div>
+
+  <!-- ================= MODAL LUPA KATA SANDI (OTP FLOW) ================= -->
+  <div id="forgotModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md p-6 rounded-2xl shadow-2xl relative border border-slate-800">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-violet-400"></i> Pemulihan Akun via OTP
+        </h3>
+        <button onclick="closeForgotModal()" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="modalAlert" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold flex items-center gap-2"></div>
+
+      <!-- TAHAP 1: INPUT EMAIL UNTUK MINTA OTP -->
+      <div id="step-request-otp" class="space-y-4 text-xs">
+        <p class="text-slate-400 leading-relaxed">
+          Masukkan alamat email yang terdaftar pada akun Anda. Sistem akan mengirimkan 6 digit kode OTP verifikasi.
+        </p>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Email Terdaftar</label>
+          <input type="email" id="forgot-email" placeholder="admin@irispresisi.local" 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition">
+        </div>
+        <button onclick="requestOtpCode()" id="btnRequestOtp" 
+          class="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-paper-plane"></i> Kirim Kode OTP
+        </button>
+      </div>
+
+      <!-- TAHAP 2: INPUT KODE OTP & KATA SANDI BARU -->
+      <div id="step-verify-otp" class="hidden space-y-4 text-xs">
+        <p class="text-slate-400 leading-relaxed">
+          Kode OTP telah dikirimkan ke <span id="display-target-email" class="text-violet-300 font-semibold"></span>. Masukkan kode 6 digit tersebut di bawah ini:
+        </p>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Kode OTP 6 Digit</label>
+          <input type="text" id="otp-input" maxlength="6" placeholder="Contoh: 849201" 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-center text-lg tracking-widest font-mono text-cyan-300 focus:outline-none focus:border-cyan-500 transition">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Kata Sandi Baru</label>
+          <input type="password" id="new-password" placeholder="Minimal 6 karakter" 
+            class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-200 focus:outline-none focus:border-violet-500 transition">
+        </div>
+        <button onclick="submitNewPassword()" id="btnSubmitNewPass" 
+          class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-check"></i> Simpan Sandi Baru
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('iris_user')) {
+      window.location.href = 'index.html';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const usernameInput = document.getElementById('username').value.trim();
+      const passwordInput = document.getElementById('password').value.trim();
+      const alertBox = document.getElementById('loginAlert');
+      const btnSubmit = document.getElementById('btnSubmit');
+
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = 'Memverifikasi...';
+
+      try {
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: usernameInput, password: passwordInput })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          alertBox.className = 'mb-4 p-3 rounded-lg text-xs font-semibold flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          alertBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> Login berhasil! Mengalihkan...';
+          alertBox.classList.remove('hidden');
+
+          localStorage.setItem('iris_user', JSON.stringify(data.user));
+
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 800);
+        } else {
+          throw new Error(data.message || 'Login gagal');
+        }
+      } catch (err) {
+        alertBox.className = 'mb-4 p-3 rounded-lg text-xs font-semibold flex items-center gap-2 bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        alertBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${err.message}`;
+        alertBox.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk ke Dasbor</span>';
+      }
+    }
+
+    // Modal OTP Logic
+    function openForgotModal() {
+      document.getElementById('forgotModal').classList.remove('hidden');
+      document.getElementById('step-request-otp').classList.remove('hidden');
+      document.getElementById('step-verify-otp').classList.add('hidden');
+      document.getElementById('modalAlert').classList.add('hidden');
+    }
+
+    function closeForgotModal() {
+      document.getElementById('forgotModal').classList.add('hidden');
+    }
+
+    async function requestOtpCode() {
+      const email = document.getElementById('forgot-email').value.trim();
+      const modalAlert = document.getElementById('modalAlert');
+      const btn = document.getElementById('btnRequestOtp');
+
+      if (!email) {
+        modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        modalAlert.innerText = 'Silakan masukkan email Anda.';
+        modalAlert.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Mengirim OTP...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/auth/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          modalAlert.innerText = data.message;
+          modalAlert.classList.remove('hidden');
+
+          document.getElementById('display-target-email').innerText = email;
+          document.getElementById('step-request-otp').classList.add('hidden');
+          document.getElementById('step-verify-otp').classList.remove('hidden');
+        } else {
+          throw new Error(data.message || 'Gagal mengirim OTP');
+        }
+      } catch (err) {
+        modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        modalAlert.innerText = err.message;
+        modalAlert.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Kode OTP';
+      }
+    }
+
+    async function submitNewPassword() {
+      const email = document.getElementById('forgot-email').value.trim();
+      const otp_code = document.getElementById('otp-input').value.trim();
+      const new_password = document.getElementById('new-password').value.trim();
+      const modalAlert = document.getElementById('modalAlert');
+      const btn = document.getElementById('btnSubmitNewPass');
+
+      if (!otp_code || !new_password) {
+        modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        modalAlert.innerText = 'Harap isi kode OTP dan kata sandi baru.';
+        modalAlert.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Memperbarui Sandi...';
+
+      try {
+        const res = await fetch('http://localhost:3000/api/auth/reset-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp_code, new_password })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          modalAlert.innerText = data.message;
+          modalAlert.classList.remove('hidden');
+
+          setTimeout(() => {
+            closeForgotModal();
+            document.getElementById('password').value = new_password;
+          }, 1500);
+        } else {
+          throw new Error(data.message || 'Gagal mereset sandi');
+        }
+      } catch (err) {
+        modalAlert.className = 'mb-4 p-3 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        modalAlert.innerText = err.message;
+        modalAlert.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Sandi Baru';
+      }
+    }
+  </script>
+</body>
+</html>
