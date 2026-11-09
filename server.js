@@ -56,7 +56,6 @@ db.connect((err) => {
       if (errT) {
         console.error('Error telemetry_logs:', errT.message);
       } else {
-        // Tambahkan kolom status otomatis jika tabel lama belum memilikinya
         db.query(`ALTER TABLE telemetry_logs ADD COLUMN status VARCHAR(50) DEFAULT 'Success'`, (errAlter) => {
           console.log('Tabel telemetry_logs siap digunakan.');
         });
@@ -174,3 +173,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server aktif pada port ${PORT}`);
 });
+
+module.exports = app;
