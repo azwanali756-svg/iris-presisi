@@ -12,74 +12,65 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rute utama untuk menampilkan index.html
+// Rute utama untuk menyajikan index.html
 app.get('/', (req, res) => {
   const filePath = path.join(__dirname, 'index.html');
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
-    res.status(404).send('File index.html tidak ditemukan di folder backend!');
+    res.status(404).send('File index.html tidak ditemukan!');
   }
 });
 
 app.use(express.static(__dirname));
 
-// Koneksi Database MySQL Aiven
-const db = mysql.createConnection({
+// Pool Database MySQL Aiven (Wajib untuk Serverless Vercel)
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 13136,
   user: process.env.DB_USER || 'avnadmin',
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'defaultdb',
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error('Koneksi Database Gagal:', err);
-  } else {
-    console.log('Database Aiven terhubung.');
+// Inisialisasi skema tabel jika belum tersedia
+const initDatabase = () => {
+  const sqlTelemetry = `
+    CREATE TABLE IF NOT EXISTS telemetry_logs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      soil_moisture FLOAT NOT NULL,
+      temperature FLOAT NOT NULL,
+      fuzzy_volume_target FLOAT NOT NULL,
+      actual_volume_dispensed FLOAT NOT NULL,
+      status VARCHAR(50) DEFAULT 'Success'
+    );
+  `;
+  db.query(sqlTelemetry, (errT) => {
+    if (!errT) {
+      db.query(`ALTER TABLE telemetry_logs ADD COLUMN status VARCHAR(50) DEFAULT 'Success'`, () => {});
+    }
+  });
 
-    // Inisialisasi tabel telemetry_logs
-    const sqlTelemetry = `
-      CREATE TABLE IF NOT EXISTS telemetry_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        soil_moisture FLOAT NOT NULL,
-        temperature FLOAT NOT NULL,
-        fuzzy_volume_target FLOAT NOT NULL,
-        actual_volume_dispensed FLOAT NOT NULL,
-        status VARCHAR(50) DEFAULT 'Success'
-      );
-    `;
-    db.query(sqlTelemetry, (errT) => {
-      if (errT) {
-        console.error('Error telemetry_logs:', errT.message);
-      } else {
-        db.query(`ALTER TABLE telemetry_logs ADD COLUMN status VARCHAR(50) DEFAULT 'Success'`, (errAlter) => {
-          console.log('Tabel telemetry_logs siap digunakan.');
-        });
-      }
-    });
+  const sqlUsers = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) NOT NULL UNIQUE,
+      email VARCHAR(100) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      reset_otp VARCHAR(10) NULL,
+      otp_expiry DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  db.query(sqlUsers, () => {});
+};
 
-    // Inisialisasi tabel users
-    const sqlUsers = `
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(50) NOT NULL UNIQUE,
-        email VARCHAR(100) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        reset_otp VARCHAR(10) NULL,
-        otp_expiry DATETIME NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
-    db.query(sqlUsers, (errU) => {
-      if (errU) console.error('Error users:', errU.message);
-      else console.log('Tabel users siap digunakan.');
-    });
-  }
-});
+initDatabase();
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -110,7 +101,7 @@ app.post('/api/telemetry', (req, res) => {
   });
 });
 
-// Endpoint Ambil Riwayat Telemetri
+// Endpoint Riwayat Telemetri
 app.get('/api/telemetry/history', (req, res) => {
   const sql = 'SELECT * FROM telemetry_logs ORDER BY timestamp DESC LIMIT 20';
   db.query(sql, (err, rows) => {
